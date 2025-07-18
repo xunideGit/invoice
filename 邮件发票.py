@@ -4,10 +4,27 @@ import pandas as pd
 from email import policy
 from email.parser import BytesParser
 from collections import defaultdict
-import langdetect
-from langdetect import detect
 import io
 from pdfminer.high_level import extract_text  # 使用pdfminer替代pdfplumber
+
+def is_russian_text(text):
+    """通过字符频率分析检测文本是否为俄文"""
+    if not text:
+        return False
+    
+    # 俄文字母表（包括大小写）
+    russian_chars = set('абвгдеёжзийклмнопрстуфхцчшщъыьэюя'
+                        'АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ')
+    
+    # 计算文本中俄文字符的比例
+    russian_count = sum(1 for char in text if char in russian_chars)
+    total_count = len(text.strip())
+    
+    if total_count == 0:
+        return False
+    
+    # 如果俄文字符比例超过30%，则认为是俄文文本
+    return (russian_count / total_count) > 0.3
 
 def is_russian_pdf(pdf_path):
     """检查PDF文件是否包含俄文内容"""
@@ -15,11 +32,8 @@ def is_russian_pdf(pdf_path):
         # 使用pdfminer.six提取文本
         text = extract_text(pdf_path)
         
-        # 使用langdetect检测语言
-        if len(text.strip()) < 50:  # 文本过少无法准确判断
-            return False
-        lang = detect(text)
-        return lang == 'ru'
+        # 通过字符频率分析检测语言
+        return is_russian_text(text)
     except Exception as e:
         print(f"Error reading PDF {pdf_path}: {e}")
         return False
