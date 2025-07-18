@@ -4,8 +4,6 @@ import pandas as pd
 from email import policy
 from email.parser import BytesParser
 from collections import defaultdict
-import io
-from pdfminer.high_level import extract_text  # 使用pdfminer替代pdfplumber
 
 def is_russian_text(text):
     """通过字符频率分析检测文本是否为俄文"""
@@ -27,10 +25,19 @@ def is_russian_text(text):
     return (russian_count / total_count) > 0.3
 
 def is_russian_pdf(pdf_path):
-    """检查PDF文件是否包含俄文内容"""
+    """检查PDF文件是否包含俄文内容（使用简单的PDF文本提取）"""
     try:
-        # 使用pdfminer.six提取文本
-        text = extract_text(pdf_path)
+        # 尝试简单的PDF文本提取
+        text = ""
+        with open(pdf_path, 'rb') as f:
+            content = f.read()
+            # 尝试提取可能的文本部分
+            try:
+                # 尝试解码为UTF-8
+                text = content.decode('utf-8', errors='ignore')
+            except UnicodeDecodeError:
+                # 尝试解码为Latin-1
+                text = content.decode('latin-1', errors='ignore')
         
         # 通过字符频率分析检测语言
         return is_russian_text(text)
@@ -116,8 +123,14 @@ def process_eml_files(folder_path):
                         
                         # 检查是否为俄文PDF
                         if is_russian_pdf(pdf_path):
-                            # 提取PDF文本内容
-                            text = extract_text(pdf_path)
+                            # 提取PDF文本内容（使用简单方法）
+                            text = ""
+                            with open(pdf_path, 'rb') as f:
+                                content = f.read()
+                                try:
+                                    text = content.decode('utf-8', errors='ignore')
+                                except UnicodeDecodeError:
+                                    text = content.decode('latin-1', errors='ignore')
                             
                             # 提取供应商和金额
                             vendor = extract_vendor(text)
